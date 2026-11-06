@@ -1,0 +1,4 @@
+services:
+  servicio-preview:
+    ports:
+      - "127.0.0.1:${PORT_PREVIEW:-8101}:8101"

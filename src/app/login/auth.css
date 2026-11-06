@@ -1,0 +1,7 @@
+.loginpage{min-height:100vh;display:grid;place-items:center;padding:22px;background:radial-gradient(ellipse at 20% 10%,#e2f3ed,transparent 45%),var(--bg)}
+.loginbox{width:min(430px,100%);background:#fff;border:1px solid var(--line);border-radius:16px;padding:32px;box-shadow:0 18px 60px #1d463514}
+.loginbrand{color:var(--ink);padding:0 0 38px}
+.loginbox h1{font:800 28px Manrope;letter-spacing:-.04em;margin:7px 0}
+.loginform{display:grid;gap:15px;margin-top:25px}
+.loginform .btn{justify-content:center;margin-top:4px}
+.loginhint{font-size:11px;color:var(--muted);margin:20px 0 0;text-align:center}

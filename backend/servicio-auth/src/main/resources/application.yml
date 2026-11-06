@@ -1,0 +1,47 @@
+server:
+  port: ${PORT_AUTH:8100}
+spring:
+  application:
+    name: servicio-auth
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/embroidery_auth}
+    username: ${SPRING_DATASOURCE_USERNAME:auth_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:auth_pass_dev_secret}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+app:
+  bootstrap-admin:
+    username: ${ADMIN_USERNAME:admin}
+    display-name: ${ADMIN_DISPLAY_NAME:Administrador}
+    password: ${ADMIN_PASSWORD:}
+  test-users:
+    admin:
+      username: ${TEST_ADMIN_USERNAME:}
+      password: ${TEST_ADMIN_PASSWORD:}
+    company-admin:
+      username: ${TEST_COMPANY_ADMIN_USERNAME:}
+      password: ${TEST_COMPANY_ADMIN_PASSWORD:}
+    designer:
+      username: ${TEST_DESIGNER_USERNAME:}
+      password: ${TEST_DESIGNER_PASSWORD:}
+    operator:
+      username: ${TEST_OPERATOR_USERNAME:}
+      password: ${TEST_OPERATOR_PASSWORD:}
+  cors:
+    allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:3000}

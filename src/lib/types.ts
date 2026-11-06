@@ -1,0 +1,9 @@
+export type ThreadColor={id?:number;ordenSecuencia:number;codigoColor:string;nombreColor:string;referenciaHilo?:string};
+export type TechnicalFile={id:number;nombreArchivo:string;formato:string;rutaAlmacenamiento?:string;tamanoBytes:number;checksumMd5:string;subidoEn:string};
+export type Design={id:number;nombre:string;descripcion:string|null;cantidadPuntadas:number;anchoMm:number|null;altoMm:number|null;formatosAdmitidos:string;observacionesTecnicas:string|null;activo:boolean;creadoEn:string;actualizadoEn:string;colores:ThreadColor[];archivos:TechnicalFile[]};
+export type DesignPayload=Pick<Design,'nombre'|'descripcion'|'cantidadPuntadas'|'anchoMm'|'altoMm'|'formatosAdmitidos'|'observacionesTecnicas'|'colores'>;
+export type CatalogDesign={id:number;nombre:string;puntadas:number;anchoMm:number|null;altoMm:number|null;cantidadColores:number;tieneArchivo:boolean;tieneMiniatura:boolean;precioUnitario:number|null;moneda:string};
+export type CatalogFolder={id:number;nombre:string;cantidadDisenos:number;cantidadSubcarpetas:number};
+export type CatalogContents={carpetaActual:{id?:number;nombre?:string};ruta:{id:number;nombre:string}[];subcarpetas:CatalogFolder[];disenos:CatalogDesign[]};
+export type EmbroideryAnalysis={archivoTemporalId:string;nombreSugerido:string;formato:string;puntadas:number;anchoMm:number;altoMm:number;cantidadColores:number;previewPngBase64:string};
+export type Thread={id:number;marca:string;tipoMaterial:string;codigoColor:string;nombreColor:string;referencia:string;stockActualConos:number;metrosPorCono:number;stockMinimoConos:number;precioCono:number;alertaStockMinimo:boolean;tieneImagen:boolean;activo:boolean};

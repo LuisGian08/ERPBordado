@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:trabajos_test_db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  expiration-ms: 3600000
+
+app:
+  costos:
+    costo-base-montaje: 10.00
+    costo-por-mil-puntadas: 0.85
+    costo-entretela-por-prenda: 1.20
+    costo-minuto-mano-obra: 0.35
+    velocidad-puntadas-por-minuto: 750
+  clients:
+    disenos-url: http://localhost:8096
+    inventario-url: http://localhost:8097

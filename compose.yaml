@@ -1,0 +1,286 @@
+services:
+  # ============================================================================
+  # BASE DE DATOS POSTGRESQL MULTI-DATABASE
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: embroiderydash-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_ROOT_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_ROOT_PASSWORD:-postgres_secure_root_password_change_me}
+    ports:
+      - "${PORT_POSTGRES:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/postgres/init-scripts:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ROOT_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - embroiderydash-network
+
+  servicio-preview:
+    build:
+      context: ./backend/servicio-preview
+      dockerfile: Dockerfile
+    container_name: embroiderydash-servicio-preview
+    restart: unless-stopped
+    environment:
+      PORT_PREVIEW: 8101
+      PREVIEW_INTERNAL_TOKEN: ${PREVIEW_INTERNAL_TOKEN:?Define PREVIEW_INTERNAL_TOKEN en .env}
+      MAX_FILE_MB: ${MAX_TECHNICAL_FILE_MB:-25}
+    expose:
+      - "8101"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8101/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - embroiderydash-network
+
+  # ============================================================================
+  # MICROSERVICIO: SERVICIO DE DISEÑOS
+  # ============================================================================
+  servicio-disenos:
+    build:
+      context: ./backend/servicio-disenos
+      dockerfile: Dockerfile
+    container_name: embroiderydash-servicio-disenos
+    restart: unless-stopped
+    environment:
+      PORT_DISENOS: 8096
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_DISENOS_NAME:-embroidery_disenos}
+      SPRING_DATASOURCE_USERNAME: ${DB_DISENOS_USER:-disenos_user}
+      SPRING_DATASOURCE_PASSWORD: ${DB_DISENOS_PASSWORD:-disenos_pass_dev_secret}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
+      CLIENT_PREVIEW_URL: http://servicio-preview:8101
+      PREVIEW_INTERNAL_TOKEN: ${PREVIEW_INTERNAL_TOKEN:?Define PREVIEW_INTERNAL_TOKEN en .env}
+      MAX_TECHNICAL_FILE_MB: ${MAX_TECHNICAL_FILE_MB:-25}
+    ports:
+      - "${PORT_DISENOS:-8096}:8096"
+    volumes:
+      - disenos_storage:/var/data/embroidery/disenos
+    depends_on:
+      postgres:
+        condition: service_healthy
+      servicio-preview:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8096/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - embroiderydash-network
+
+  # ============================================================================
+  # MICROSERVICIO: SERVICIO DE INVENTARIO
+  # ============================================================================
+  servicio-inventario:
+    build:
+      context: ./backend/servicio-inventario
+      dockerfile: Dockerfile
+    container_name: embroiderydash-servicio-inventario
+    restart: unless-stopped
+    environment:
+      PORT_INVENTARIO: 8097
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_INVENTARIO_NAME:-embroidery_inventario}
+      SPRING_DATASOURCE_USERNAME: ${DB_INVENTARIO_USER:-inventario_user}
+      SPRING_DATASOURCE_PASSWORD: ${DB_INVENTARIO_PASSWORD:-inventario_pass_dev_secret}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
+      STORAGE_DIR: /var/data/embroidery/inventario
+    ports:
+      - "${PORT_INVENTARIO:-8097}:8097"
+    volumes:
+      - inventario_storage:/var/data/embroidery/inventario
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8097/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - embroiderydash-network
+
+  # ============================================================================
+  # MICROSERVICIO: SERVICIO DE TRABAJOS Y COSTOS
+  # ============================================================================
+  servicio-trabajos:
+    build:
+      context: ./backend/servicio-trabajos
+      dockerfile: Dockerfile
+    container_name: embroiderydash-servicio-trabajos
+    restart: unless-stopped
+    environment:
+      PORT_TRABAJOS: 8098
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_TRABAJOS_NAME:-embroidery_trabajos}
+      SPRING_DATASOURCE_USERNAME: ${DB_TRABAJOS_USER:-trabajos_user}
+      SPRING_DATASOURCE_PASSWORD: ${DB_TRABAJOS_PASSWORD:-trabajos_pass_dev_secret}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
+      CLIENT_DISENOS_URL: http://servicio-disenos:8096
+      CLIENT_INVENTARIO_URL: http://servicio-inventario:8097
+    ports:
+      - "${PORT_TRABAJOS:-8098}:8098"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      servicio-disenos:
+        condition: service_healthy
+      servicio-inventario:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8098/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - embroiderydash-network
+
+  # ============================================================================
+  # MICROSERVICIO: SERVICIO DE PAGOS Y COBRANZAS
+  # ============================================================================
+  servicio-pagos:
+    build:
+      context: ./backend/servicio-pagos
+      dockerfile: Dockerfile
+    container_name: embroiderydash-servicio-pagos
+    restart: unless-stopped
+    environment:
+      PORT_PAGOS: 8099
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_PAGOS_NAME:-embroidery_pagos}
+      SPRING_DATASOURCE_USERNAME: ${DB_PAGOS_USER:-pagos_user}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PAGOS_PASSWORD:-pagos_pass_dev_secret}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
+      CLIENT_TRABAJOS_URL: http://servicio-trabajos:8098
+      CLIENT_DISENOS_URL: http://servicio-disenos:8096
+    ports:
+      - "${PORT_PAGOS:-8099}:8099"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      servicio-trabajos:
+        condition: service_healthy
+      servicio-disenos:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8099/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - embroiderydash-network
+
+  # ============================================================================
+  # IDENTIDAD Y AUTENTICACIÓN
+  # ============================================================================
+  servicio-auth:
+    build:
+      context: ./backend/servicio-auth
+      dockerfile: Dockerfile
+    container_name: embroiderydash-servicio-auth
+    restart: unless-stopped
+    environment:
+      PORT_AUTH: 8100
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_AUTH_NAME:-embroidery_auth}
+      SPRING_DATASOURCE_USERNAME: ${DB_AUTH_USER:-auth_user}
+      SPRING_DATASOURCE_PASSWORD: ${DB_AUTH_PASSWORD:-auth_pass_dev_secret}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_DISPLAY_NAME: ${ADMIN_DISPLAY_NAME:-Administrador}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Define ADMIN_PASSWORD en .env}
+      TEST_ADMIN_USERNAME: ${TEST_ADMIN_USERNAME:-}
+      TEST_ADMIN_PASSWORD: ${TEST_ADMIN_PASSWORD:-}
+      TEST_COMPANY_ADMIN_USERNAME: ${TEST_COMPANY_ADMIN_USERNAME:-}
+      TEST_COMPANY_ADMIN_PASSWORD: ${TEST_COMPANY_ADMIN_PASSWORD:-}
+      TEST_DESIGNER_USERNAME: ${TEST_DESIGNER_USERNAME:-}
+      TEST_DESIGNER_PASSWORD: ${TEST_DESIGNER_PASSWORD:-}
+      TEST_OPERATOR_USERNAME: ${TEST_OPERATOR_USERNAME:-}
+      TEST_OPERATOR_PASSWORD: ${TEST_OPERATOR_PASSWORD:-}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
+    ports:
+      - "${PORT_AUTH:-8100}:8100"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8100/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - embroiderydash-network
+
+  # ============================================================================
+  # API GATEWAY PERIMETRAL
+  # ============================================================================
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: embroiderydash-api-gateway
+    restart: unless-stopped
+    environment:
+      PORT_GATEWAY: 8095
+      SPRING_PROFILES_ACTIVE: docker
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env}
+      SERVICE_DISENOS_URI: http://servicio-disenos:8096
+      SERVICE_INVENTARIO_URI: http://servicio-inventario:8097
+      SERVICE_TRABAJOS_URI: http://servicio-trabajos:8098
+      SERVICE_PAGOS_URI: http://servicio-pagos:8099
+      SERVICE_AUTH_URI: http://servicio-auth:8100
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
+    ports:
+      - "${PORT_GATEWAY:-8095}:8095"
+    depends_on:
+      servicio-disenos:
+        condition: service_healthy
+      servicio-inventario:
+        condition: service_healthy
+      servicio-trabajos:
+        condition: service_healthy
+      servicio-pagos:
+        condition: service_healthy
+      servicio-auth:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8095/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - embroiderydash-network
+
+volumes:
+  postgres_data:
+    name: embroiderydash-postgres-data
+  disenos_storage:
+    name: embroiderydash-disenos-storage
+  inventario_storage:
+    name: embroiderydash-inventario-storage
+
+networks:
+  embroiderydash-network:
+    name: embroiderydash-network
+    driver: bridge

@@ -1,0 +1,60 @@
+server:
+  port: ${PORT_TRABAJOS:8098}
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: servicio-trabajos
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/embroidery_trabajos}
+    username: ${SPRING_DATASOURCE_USERNAME:trabajos_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:trabajos_pass_dev_secret}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+jwt:
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+# Parámetros configurables de la fórmula de costo de producción
+app:
+  costos:
+    costo-base-montaje: 10.00
+    costo-por-mil-puntadas: 0.85
+    costo-entretela-por-prenda: 1.20
+    costo-minuto-mano-obra: 0.35
+    velocidad-puntadas-por-minuto: 750
+  clients:
+    disenos-url: ${CLIENT_DISENOS_URL:http://localhost:8096}
+    inventario-url: ${CLIENT_INVENTARIO_URL:http://localhost:8097}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
