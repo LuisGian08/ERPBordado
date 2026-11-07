@@ -1,0 +1,53 @@
+server:
+  port: ${PORT_PAGOS:8099}
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: servicio-pagos
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/embroidery_pagos}
+    username: ${SPRING_DATASOURCE_USERNAME:pagos_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:pagos_pass_dev_secret}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+app:
+  clients:
+    trabajos-url: ${CLIENT_TRABAJOS_URL:http://localhost:8098}
+    disenos-url: ${CLIENT_DISENOS_URL:http://localhost:8096}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
