@@ -3,8 +3,11 @@ package com.embroiderydash.pagos.api.controller;
 import com.embroiderydash.pagos.api.dto.PagoRequestDto;
 import com.embroiderydash.pagos.api.dto.PagoResponseDto;
 import com.embroiderydash.pagos.api.dto.ResumenPagoTrabajoDto;
+import com.embroiderydash.pagos.api.dto.PagoOperadorRequestDto;
+import com.embroiderydash.pagos.api.dto.PagoOperadorResponseDto;
 import com.embroiderydash.pagos.application.service.PagoCreationResult;
 import com.embroiderydash.pagos.application.service.PagoService;
+import com.embroiderydash.pagos.application.service.PagoOperadorService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +22,14 @@ import java.util.List;
 @RequestMapping("/api/v1/pagos")
 public class PagoController {
     private final PagoService service;
-    public PagoController(PagoService service) { this.service=service; }
+    private final PagoOperadorService operadores;
+    public PagoController(PagoService service,PagoOperadorService operadores) { this.service=service;this.operadores=operadores; }
+    @PostMapping("/operadores")
+    public ResponseEntity<PagoOperadorResponseDto> registrarPagoOperador(@Valid @RequestBody PagoOperadorRequestDto request,Authentication authentication){
+        return ResponseEntity.status(HttpStatus.CREATED).body(operadores.registrar(request,authentication.getName()));
+    }
+    @GetMapping("/operadores")
+    public Page<PagoOperadorResponseDto> pagosOperadores(@PageableDefault(size=100,sort="fechaPago",direction=org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable){return operadores.listar(pageable);}
     @PostMapping
     public ResponseEntity<PagoResponseDto> crear(@RequestHeader(value="Idempotency-Key",required=false) String key,
             @Valid @RequestBody PagoRequestDto request, Authentication authentication) {
